@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
-
+import re
 def process_csv(uploaded_file):
     # CSV 읽기
     df = pd.read_csv(uploaded_file)
