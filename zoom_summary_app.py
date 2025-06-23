@@ -10,6 +10,10 @@ def process_csv(uploaded_file):
     # 필요한 컬럼만 추출
     df_selected = df[['이름(원래 이름)', '참가 시간', '나간 시간', '기간(분)']].copy()
 
+    # 괄호 제거 (예: "홍길동 (00초/홍길동)" → "홍길동")
+    df_selected['이름(원래 이름)'] = df_selected['이름(원래 이름)'].apply(lambda x: re.sub(r'\s*\(.*?\)', '', str(x)).strip())
+
+
     # 문자열 → datetime 변환
     df_selected['참가 시간'] = pd.to_datetime(df_selected['참가 시간'])
     df_selected['나간 시간'] = pd.to_datetime(df_selected['나간 시간'])
