@@ -3,43 +3,47 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime
 
+# ✅ 차시별 접속시간 계산 함수
+def calc_total_minutes(df, start_col, end_col):
+    df = df.dropna(subset=[start_col, end_col]).copy()
+    df['차시_접속시간'] = (pd.to_datetime(df[end_col]) - pd.to_datetime(df[start_col])).dt.total_seconds() / 60
+    return df.groupby('이름(원래 이름)')['차시_접속시간'].sum().reset_index()
+
+# ✅ 통합 분석 함수
 def process_csv(uploaded_file):
     df = pd.read_csv(uploaded_file)
 
-    # 필요한 열
+    df['이름(원래 이름)'] = df['이름(원래 이름)'].str.replace(r"\s*\([^)]*\)", "", regex=True).str.strip()
+    
+    # 시간 컬럼 정리
     time_cols = [
         '1차시 시작', '1차시 종료',
         '2차시 시작', '2차시 종료',
         '3차시 시작', '3차시 종료',
         '4차시 시작', '4차시 종료'
     ]
-    df = df[['이름(원래 이름)'] + time_cols + ['기간(분)']].copy()
-
-    # 이름 정리
-    df['이름(원래 이름)'] = df['이름(원래 이름)'].str.replace(r"\s*\([^)]*\)", "", regex=True).str.strip()
-
-    # 시간 파싱
     for col in time_cols:
         df[col] = pd.to_datetime(df[col], errors='coerce')
+    
+    # 각 차시 접속시간 계산
+    g1 = calc_total_minutes(df, '1차시 시작', '1차시 종료').rename(columns={'차시_접속시간': '1교시 접속시간'})
+    g2 = calc_total_minutes(df, '2차시 시작', '2차시 종료').rename(columns={'차시_접속시간': '2교시 접속시간'})
+    g3 = calc_total_minutes(df, '3차시 시작', '3차시 종료').rename(columns={'차시_접속시간': '3교시 접속시간'})
+    g4 = calc_total_minutes(df, '4차시 시작', '4차시 종료').rename(columns={'차시_접속시간': '4교시 접속시간'})
 
-    # 그룹 요약
-    summary = df.groupby('이름(원래 이름)').agg({
-        '1차시 시작': 'min', '1차시 종료': 'max',
-        '2차시 시작': 'min', '2차시 종료': 'max',
-        '3차시 시작': 'min', '3차시 종료': 'max',
-        '4차시 시작': 'min', '4차시 종료': 'max',
-    }).reset_index()
+    # 병합
+    result = g1.merge(g2, on='이름(원래 이름)', how='outer') \
+               .merge(g3, on='이름(원래 이름)', how='outer') \
+               .merge(g4, on='이름(원래 이름)', how='outer')
 
-    # ✅ 정확한 교시별 접속시간 계산
-    summary['1교시 접속시간'] = (summary['1차시 종료'] - summary['1차시 시작']).dt.total_seconds() // 60
-    summary['2교시 접속시간'] = (summary['2차시 종료'] - summary['2차시 시작']).dt.total_seconds() // 60
-    summary['3교시 접속시간'] = (summary['3차시 종료'] - summary['3차시 시작']).dt.total_seconds() // 60
-    summary['4교시 접속시간'] = (summary['4차시 종료'] - summary['4차시 시작']).dt.total_seconds() // 60
+    # NaN → 0
+    for col in ['1교시 접속시간', '2교시 접속시간', '3교시 접속시간', '4교시 접속시간']:
+        result[col] = result[col].fillna(0).astype(int)
 
-    # ✅ 통합 접속시간 = 1차시 시작 ~ 4차시 종료
-    summary['통합 접속시간'] = (summary['4차시 종료'] - summary['1차시 시작']).dt.total_seconds() // 60
+    # 통합 접속시간 = 전체 차시 합
+    result['통합 접속시간'] = result[['1교시 접속시간', '2교시 접속시간', '3교시 접속시간', '4교시 접속시간']].sum(axis=1)
 
-    return summary
+    return result
 
 def convert_df_to_csv(df):
     buffer = BytesIO()
@@ -49,7 +53,7 @@ def convert_df_to_csv(df):
 
 st.set_page_config(page_title="Zoom 교시별 접속 분석", layout="wide")
 st.title("📊 Zoom 교시별 접속 시간 요약")
-st.markdown("업로드된 Zoom CSV 파일에서 참가자의 교시별 접속 시간 및 총 접속 시간을 자동으로 분석합니다.")
+st.markdown("중복 접속도 반영한 교시별/전체 접속시간 계산기")
 
 uploaded_file = st.file_uploader("✅ CSV 파일 업로드", type=["csv"])
 
