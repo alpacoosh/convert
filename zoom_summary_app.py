@@ -52,7 +52,7 @@ st.markdown("CSV 파일을 업로드하면 참가자별 총 이수 시간과 시
 st.markdown("""
     <style>
     .dataframe td, .dataframe th {
-        font-size: 13px !important;
+        font-size: 8px !important;
         padding: 4px 8px !important;
     }
     .element-container:has(.dataframe) {
