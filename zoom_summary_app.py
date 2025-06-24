@@ -3,27 +3,27 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime
 
-# ✅ 데이터 처리 함수
+# 올바른 열 이름이 들어간 파일 기준으로 처리
 def process_csv(uploaded_file):
     df = pd.read_csv(uploaded_file)
 
-    # 필요한 컬럼만 선택
+    # 필요한 열
     time_cols = [
         '1차시 시작', '1차시 종료',
         '2차시 시작', '2차시 종료',
         '3차시 시작', '3차시 종료',
         '4차시 시작', '4차시 종료'
     ]
-    df = df[['이름(원래 이름)', '이메일'] + time_cols + ['기간(분)']].copy()
+    df = df[['이름(원래 이름)'] + time_cols + ['기간(분)']].copy()
 
-    # 이름 괄호 제거
+    # 이름 정리
     df['이름(원래 이름)'] = df['이름(원래 이름)'].str.replace(r"\s*\([^)]*\)", "", regex=True).str.strip()
 
-    # 시간 변환
+    # 시간 파싱
     for col in time_cols:
         df[col] = pd.to_datetime(df[col], errors='coerce')
 
-    # 그룹화
+    # 그룹 요약
     summary = df.groupby('이름(원래 이름)').agg({
         '1차시 시작': 'min', '1차시 종료': 'max',
         '2차시 시작': 'min', '2차시 종료': 'max',
@@ -31,20 +31,14 @@ def process_csv(uploaded_file):
         '4차시 시작': 'min', '4차시 종료': 'max',
     }).reset_index()
 
-    # 교시별 접속 시간 계산
+    # 접속 시간 계산
     summary['1교시 접속시간'] = (summary['1차시 종료'] - summary['1차시 시작']).dt.total_seconds() // 60
     summary['2교시 접속시간'] = (summary['2차시 시작'] - summary['1차시 종료']).dt.total_seconds() // 60
     summary['3교시 접속시간'] = (summary['3차시 시작'] - summary['2차시 종료']).dt.total_seconds() // 60
     summary['4교시 접속시간'] = (summary['4차시 시작'] - summary['3차시 종료']).dt.total_seconds() // 60
 
-    # 이메일 복원
-    emails = df[['이름(원래 이름)', '이메일']].drop_duplicates()
-    result = pd.merge(summary, emails, on='이름(원래 이름)', how='left')
+    return summary
 
-    # 이메일 제거
-    result.drop(columns=['이메일'], inplace=True)
-
-    return result
 
 # ✅ 다운로드용 CSV 변환
 def convert_df_to_csv(df):
