@@ -31,10 +31,16 @@ def process_csv(uploaded_file):
     g3 = calc_total_minutes(df, '3차시 시작', '3차시 종료').rename(columns={'차시_접속시간': '3교시 접속시간'})
     g4 = calc_total_minutes(df, '4차시 시작', '4차시 종료').rename(columns={'차시_접속시간': '4교시 접속시간'})
 
-    # 병합
+    # 시간 정보 요약 (가장 빠른 시작 ~ 가장 늦은 종료)
+    time_info = df.groupby('이름(원래 이름)')[time_cols].agg(['min', 'max'])
+    time_info.columns = ['_'.join(col).strip() for col in time_info.columns.values]
+    time_info = time_info.reset_index()
+
+    # 접속시간 병합
     result = g1.merge(g2, on='이름(원래 이름)', how='outer') \
                .merge(g3, on='이름(원래 이름)', how='outer') \
-               .merge(g4, on='이름(원래 이름)', how='outer')
+               .merge(g4, on='이름(원래 이름)', how='outer') \
+               .merge(time_info, on='이름(원래 이름)', how='left')
 
     # NaN → 0
     for col in ['1교시 접속시간', '2교시 접속시간', '3교시 접속시간', '4교시 접속시간']:
@@ -52,8 +58,8 @@ def convert_df_to_csv(df):
     return buffer
 
 st.set_page_config(page_title="Zoom 교시별 접속 분석", layout="wide")
-st.title("📊 Zoom 교시별 접속 시간 요약")
-st.markdown("중복 접속도 반영한 교시별/전체 접속시간 계산기")
+st.title("📊 Zoom 교시별 접속 시간 + 시간정보 요약")
+st.markdown("중복 접속 포함한 교시별 접속시간 및 시작/종료시간 확인 가능")
 
 uploaded_file = st.file_uploader("✅ CSV 파일 업로드", type=["csv"])
 
@@ -67,7 +73,7 @@ if uploaded_file:
         st.download_button(
             label="📥 분석 결과 CSV 다운로드",
             data=convert_df_to_csv(result_df),
-            file_name=f"zoom_접속시간_요약_{now_str}.csv",
+            file_name=f"zoom_접속시간_포함_{now_str}.csv",
             mime="text/csv"
         )
     except Exception as e:
