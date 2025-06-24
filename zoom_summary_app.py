@@ -36,33 +36,34 @@ def process_csv(uploaded_file):
     result = grouped[['이름(원래 이름)', '기간(분)', '참가 시간', '참가 시간(2)', '나간 시간(2)', '나간 시간', '참가시간(3)', '나간시간(3)']]
     return result
 
-# ✅ CSV 변환 함수
+# ✅ CSV 다운로드용 변환 함수
 def convert_df_to_csv(df):
     buffer = BytesIO()
     df.to_csv(buffer, index=False, encoding='utf-8-sig')
     buffer.seek(0)
     return buffer
 
-# ✅ Streamlit 앱 구성
-st.set_page_config(page_title="Zoom 참가자 요약", layout="centered")
+# ✅ Streamlit 설정
+st.set_page_config(page_title="Zoom 참가자 요약", layout="wide")
 st.title("📊 Zoom 참가자 이수 요약")
 st.markdown("CSV 파일을 업로드하면 참가자별 총 이수 시간과 시간 범위를 계산하고, 추가 시간 분석 결과를 보여줍니다.")
 
-# ✅ CSS로 표 스타일 조정 (스크롤 제거, 글씨 작게)
+# ✅ 표 스타일 개선 (글자 작게, 줄바꿈 제거, 셀 간격 최소화, 너비 확장)
 st.markdown("""
     <style>
     .dataframe td, .dataframe th {
-        font-size: 8px !important;
-        padding: 4px 8px !important;
+        font-size: 11px !important;
+        padding: 2px 4px !important;
+        white-space: nowrap !important;
     }
     .element-container:has(.dataframe) {
-        max-width: 100% !important;
+        width: 100% !important;
         overflow-x: auto;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# ✅ 파일 업로드
+# ✅ CSV 업로드
 uploaded_file = st.file_uploader("✅ CSV 파일 업로드", type=["csv"])
 
 if uploaded_file:
@@ -70,7 +71,9 @@ if uploaded_file:
         summary_df = process_csv(uploaded_file)
 
         st.success("요약 성공! 아래에서 결과 확인 및 다운로드 가능합니다.")
-        st.dataframe(summary_df)
+
+        # ✅ 전체 테이블 출력 (최대한 너비 사용)
+        st.dataframe(summary_df, use_container_width=True)
 
         # ✅ 다운로드 버튼
         now_str = datetime.now().strftime('%Y%m%d_%H%M')
