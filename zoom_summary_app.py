@@ -3,16 +3,14 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime
 
-# ✅ 접속 시간 계산 함수
 def get_duration(df, start_col, end_col):
     return (pd.to_datetime(df[end_col], errors='coerce') - pd.to_datetime(df[start_col], errors='coerce')).dt.total_seconds() // 60
 
-# ✅ 처리 함수
 def process_csv(uploaded_file):
     df = pd.read_csv(uploaded_file)
     df['이름(원래 이름)'] = df['이름(원래 이름)'].str.replace(r"\s*\([^)]*\)", "", regex=True).str.strip()
 
-    # 시간 컬럼 변환
+    # 시간 컬럼
     time_cols = [
         '1차시 시작', '1차시 종료',
         '2차시 시작', '2차시 종료',
@@ -22,16 +20,22 @@ def process_csv(uploaded_file):
     for col in time_cols:
         df[col] = pd.to_datetime(df[col], errors='coerce')
 
+    # 그룹 통합: 최소 시작, 최대 종료
+    grouped = df.groupby('이름(원래 이름)').agg({
+        '1차시 시작': 'min', '1차시 종료': 'max',
+        '2차시 시작': 'min', '2차시 종료': 'max',
+        '3차시 시작': 'min', '3차시 종료': 'max',
+        '4차시 시작': 'min', '4차시 종료': 'max',
+    }).reset_index()
+
     # 접속 시간 계산
-    df['1교시 접속시간'] = get_duration(df, '1차시 시작', '1차시 종료')
-    df['2교시 접속시간'] = get_duration(df, '2차시 시작', '2차시 종료')
-    df['3교시 접속시간'] = get_duration(df, '3차시 시작', '3차시 종료')
-    df['4교시 접속시간'] = get_duration(df, '4차시 시작', '4차시 종료')
+    grouped['1교시 접속시간'] = get_duration(grouped, '1차시 시작', '1차시 종료')
+    grouped['2교시 접속시간'] = get_duration(grouped, '2차시 시작', '2차시 종료')
+    grouped['3교시 접속시간'] = get_duration(grouped, '3차시 시작', '3차시 종료')
+    grouped['4교시 접속시간'] = get_duration(grouped, '4차시 시작', '4차시 종료')
+    grouped['통합 접속시간'] = grouped[['1교시 접속시간', '2교시 접속시간', '3교시 접속시간', '4교시 접속시간']].sum(axis=1)
 
-    # 통합 접속시간
-    df['통합 접속시간'] = df[['1교시 접속시간', '2교시 접속시간', '3교시 접속시간', '4교시 접속시간']].sum(axis=1)
-
-    # ✅ 최종 열 순서: 시작/종료 → 접속시간 4개 → 통합 접속시간
+    # 열 순서 정리
     final_cols = [
         '이름(원래 이름)',
         '1차시 시작', '1차시 종료',
@@ -41,9 +45,8 @@ def process_csv(uploaded_file):
         '1교시 접속시간', '2교시 접속시간', '3교시 접속시간', '4교시 접속시간',
         '통합 접속시간'
     ]
-    return df[final_cols]
+    return grouped[final_cols]
 
-# ✅ CSV 변환 함수
 def convert_df_to_csv(df):
     buffer = BytesIO()
     df.to_csv(buffer, index=False, encoding='utf-8-sig')
