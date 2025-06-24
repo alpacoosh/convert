@@ -3,7 +3,7 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime
 
-# 올바른 열 이름이 들어간 파일 기준으로 처리
+# ✅ 접속시간 요약 처리
 def process_csv(uploaded_file):
     df = pd.read_csv(uploaded_file)
 
@@ -31,14 +31,16 @@ def process_csv(uploaded_file):
         '4차시 시작': 'min', '4차시 종료': 'max',
     }).reset_index()
 
-    # 접속 시간 계산
+    # ✅ 정확한 교시별 접속시간 계산 (종료 - 시작)
     summary['1교시 접속시간'] = (summary['1차시 종료'] - summary['1차시 시작']).dt.total_seconds() // 60
-    summary['2교시 접속시간'] = (summary['2차시 시작'] - summary['1차시 종료']).dt.total_seconds() // 60
-    summary['3교시 접속시간'] = (summary['3차시 시작'] - summary['2차시 종료']).dt.total_seconds() // 60
-    summary['4교시 접속시간'] = (summary['4차시 시작'] - summary['3차시 종료']).dt.total_seconds() // 60
+    summary['2교시 접속시간'] = (summary['2차시 종료'] - summary['2차시 시작']).dt.total_seconds() // 60
+    summary['3교시 접속시간'] = (summary['3차시 종료'] - summary['3차시 시작']).dt.total_seconds() // 60
+    summary['4교시 접속시간'] = (summary['4차시 종료'] - summary['4차시 시작']).dt.total_seconds() // 60
+
+    # ✅ 통합 접속시간 = 4차시 종료 - 1차시 시작
+    summary['통합 접속시간'] = (summary['4차시 종료'] - summary['1차시 시작']).dt.total_seconds() // 60
 
     return summary
-
 
 # ✅ 다운로드용 CSV 변환
 def convert_df_to_csv(df):
@@ -47,10 +49,10 @@ def convert_df_to_csv(df):
     buffer.seek(0)
     return buffer
 
-# ✅ Streamlit 앱 UI
+# ✅ Streamlit UI
 st.set_page_config(page_title="Zoom 교시별 접속 분석", layout="wide")
 st.title("📊 Zoom 교시별 접속 시간 요약")
-st.markdown("업로드된 Zoom CSV 파일에서 참가자의 교시별 접속 시간을 자동으로 분석합니다.")
+st.markdown("업로드된 Zoom CSV 파일에서 참가자의 교시별 접속 시간 및 총 접속 시간을 자동으로 분석합니다.")
 
 uploaded_file = st.file_uploader("✅ CSV 파일 업로드", type=["csv"])
 
