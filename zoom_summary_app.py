@@ -23,6 +23,10 @@ def process_csv(uploaded_file):
     grouped['참가시간(3)'] = (grouped['참가 시간(2)'] - grouped['참가 시간']).dt.total_seconds() // 60
     grouped['나간시간(3)'] = (grouped['나간 시간'] - grouped['나간 시간(2)']).dt.total_seconds() // 60
 
+    # ✅ 날짜 포맷을 "분"까지만 출력
+    for col in ['참가 시간', '참가 시간(2)', '나간 시간(2)', '나간 시간']:
+        grouped[col] = grouped[col].dt.strftime('%Y-%m-%d %H:%M')
+
     result = grouped[['이름(원래 이름)', '기간(분)', '참가 시간', '참가 시간(2)', '나간 시간(2)', '나간 시간', '참가시간(3)', '나간시간(3)']]
     return result
 
