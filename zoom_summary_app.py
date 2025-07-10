@@ -35,7 +35,7 @@ def process_csv(uploaded_file):
     grouped['3교시 접속시간'] = get_duration(grouped, '3차시 시작', '3차시 종료')
     grouped['4교시 접속시간'] = get_duration(grouped, '4차시 시작', '4차시 종료')
     grouped['통합 접속시간'] = grouped[['1교시 접속시간', '2교시 접속시간', '3교시 접속시간', '4교시 접속시간']].sum(axis=1)
-
+    
     # 열 순서 정리
     final_cols = [
         '이름(원래 이름)',
@@ -44,7 +44,7 @@ def process_csv(uploaded_file):
         '3차시 시작', '3차시 종료',
         '4차시 시작', '4차시 종료',
         '1교시 접속시간', '2교시 접속시간', '3교시 접속시간', '4교시 접속시간',
-        '통합 접속시간'
+        '통합 접속시간', '기간(분)'
     ]
     return grouped[final_cols]
 
