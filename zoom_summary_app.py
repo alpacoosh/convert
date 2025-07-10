@@ -26,7 +26,7 @@ def process_csv(uploaded_file):
         '2차시 시작': 'min', '2차시 종료': 'max',
         '3차시 시작': 'min', '3차시 종료': 'max',
         '4차시 시작': 'min', '4차시 종료': 'max',
-        '기간(분):'sum'
+        '기간(분)':'sum'
     }).reset_index()
 
     # 접속 시간 계산
